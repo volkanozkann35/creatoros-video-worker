@@ -1,3 +1,4 @@
 ﻿print("🔥 VIDEO GODMODE ACTIVE")
 
-from src import file_watcher
+import file_watcher
+
