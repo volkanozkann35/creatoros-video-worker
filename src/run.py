@@ -1,13 +1,13 @@
-﻿print("🚀 VIDEO GODMODE ACTIVE", flush=True)
+﻿print("🚀 VIDEO GODMODE ACTIVE")
 
+import time
 import file_watcher
-import threading
 
-print("WORKER ALIVE", flush=True)
+print("WORKER ALIVE")
 
-t = threading.Thread(target=file_watcher.start_watcher, daemon=True)
-t.start()
+# 🔴 KRİTİK SATIR (EKSİKTİ)
+file_watcher.start_watcher()
 
+# Asla buraya gelmez ama worker düşmesin diye
 while True:
-    import time
     time.sleep(60)
