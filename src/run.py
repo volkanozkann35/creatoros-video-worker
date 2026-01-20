@@ -1,13 +1,13 @@
-﻿print("🚀 VIDEO GODMODE ACTIVE")
-
-import time
+﻿from logger import setup_logger
 import file_watcher
 
+log = setup_logger("run")
+
+print("🚀 VIDEO GODMODE ACTIVE")
 print("WORKER ALIVE")
 
-# 🔴 KRİTİK SATIR (EKSİKTİ)
-file_watcher.start_watcher()
-
-# Asla buraya gelmez ama worker düşmesin diye
-while True:
-    time.sleep(60)
+try:
+    file_watcher.start_watching()
+except Exception as e:
+    log.exception(f"file_watcher crashed: {e}")
+    raise

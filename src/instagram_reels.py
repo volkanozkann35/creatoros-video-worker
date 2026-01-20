@@ -1,57 +1,53 @@
-import requests
 import time
-from src.config import (
-    IG_ACCESS_TOKEN,
-    IG_USER_ID,
-    IG_VERSION
-)
+import requests
+from config import IG_USER_ID, IG_ACCESS_TOKEN
 
+GRAPH = "https://graph.facebook.com/v19.0"
 
-def post_reel(video_url: str, caption: str):
-    print("📤 Instagram Reel gönderiliyor...")
+def _require_ig():
+    if not IG_USER_ID or not IG_ACCESS_TOKEN:
+        raise RuntimeError("Missing IG_USER_ID or IG_ACCESS_TOKEN")
 
-    create_url = f"https://graph.facebook.com/{IG_VERSION}/{IG_USER_ID}/media"
+def publish_reel(video_url: str, caption: str) -> dict:
+    """
+    IG Reels flow (Graph API):
+    1) create media container
+    2) poll container status
+    3) publish
+    """
+    _require_ig()
 
+    # 1) create container
+    create_url = f"{GRAPH}/{IG_USER_ID}/media"
     payload = {
         "media_type": "REELS",
         "video_url": video_url,
         "caption": caption,
-        "access_token": IG_ACCESS_TOKEN
+        "access_token": IG_ACCESS_TOKEN,
     }
+    r = requests.post(create_url, data=payload, timeout=60)
+    r.raise_for_status()
+    creation_id = r.json().get("id")
+    if not creation_id:
+        raise RuntimeError(f"IG create container failed: {r.text}")
 
-    r = requests.post(create_url, data=payload)
-    data = r.json()
-
-    if "id" not in data:
-        raise RuntimeError(f"IG container oluşturulamadı: {data}")
-
-    creation_id = data["id"]
-    print("🕒 Container hazır olması bekleniyor...")
-
-    # Instagram processing bekleme
-    for i in range(20):
-        status_url = f"https://graph.facebook.com/{IG_VERSION}/{creation_id}?fields=status_code&access_token={IG_ACCESS_TOKEN}"
-        status = requests.get(status_url).json()
-
-        if status.get("status_code") == "FINISHED":
-            print("✅ Reel hazır")
+    # 2) poll status
+    status_url = f"{GRAPH}/{creation_id}"
+    for _ in range(90):  # ~ 90 * 5s = 7.5 dk
+        rr = requests.get(status_url, params={"fields": "status_code", "access_token": IG_ACCESS_TOKEN}, timeout=30)
+        rr.raise_for_status()
+        status = rr.json().get("status_code")
+        if status == "FINISHED":
             break
-
-        time.sleep(3)
+        if status in ("ERROR", "EXPIRED"):
+            raise RuntimeError(f"IG container status: {status} | {rr.text}")
+        time.sleep(5)
     else:
-        raise RuntimeError("Instagram video işleyemedi (timeout)")
+        raise RuntimeError("IG container not finished in time")
 
-    publish_url = f"https://graph.facebook.com/{IG_VERSION}/{IG_USER_ID}/media_publish"
+    # 3) publish
+    publish_url = f"{GRAPH}/{IG_USER_ID}/media_publish"
+    pr = requests.post(publish_url, data={"creation_id": creation_id, "access_token": IG_ACCESS_TOKEN}, timeout=60)
+    pr.raise_for_status()
 
-    publish_payload = {
-        "creation_id": creation_id,
-        "access_token": IG_ACCESS_TOKEN
-    }
-
-    pub = requests.post(publish_url, data=publish_payload).json()
-
-    if "id" not in pub:
-        raise RuntimeError(f"Reel publish başarısız: {pub}")
-
-    print("🚀 Instagram Reel YAYINLANDI:", pub["id"])
-    return pub["id"]
+    return {"creation_id": creation_id, "publish": pr.json()}

@@ -1,13 +1,22 @@
-import random
+from pathlib import Path
 
-def yt_title():
-    hooks = [
-        "Glow differently today ✨",
-        "Energy follows intention ⚡",
-        "Shift your mindset in 10 seconds",
-        "Daily motivation for powerful souls"
-    ]
-    return random.choice(hooks)
+def generate_caption(video_path: Path) -> dict:
+    """
+    Şimdilik stabil, deterministic caption.
+    (İstersen sonra OpenAI ile gerçek AI caption ekleriz.)
+    """
+    stem = video_path.stem.replace("_", " ").strip()
+    title = stem[:80] if stem else "New Short"
 
-def reel_caption():
-    return yt_title() + "\n#solaramade #motivation #reels"
+    caption = (
+        f"{title}\n\n"
+        "⚡️ Daily boost • SolaraMade\n"
+        "#shorts #reels #motivation #solaramade"
+    )
+
+    return {
+        "title": title,
+        "caption": caption,
+        "description": caption,
+        "tags": ["shorts", "reels", "motivation", "solaramade"]
+    }
