@@ -1,24 +1,10 @@
-import os
 import time
-import logging
-from dotenv import load_dotenv
+import os
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
-# .env yükle (local + Render uyumlu)
-load_dotenv()
-
-WATCH_FOLDER = os.getenv("WATCH_FOLDER")
-
-if not WATCH_FOLDER:
-    raise RuntimeError("WATCH_FOLDER is None. .env not loaded correctly.")
-
-if not os.path.isdir(WATCH_FOLDER):
-    raise RuntimeError(f"WATCH_FOLDER path does not exist: {WATCH_FOLDER}")
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s | %(levelname)s | %(message)s",
+WATCH_FOLDER = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..", "auto_videos")
 )
 
 class VideoHandler(FileSystemEventHandler):
@@ -26,26 +12,17 @@ class VideoHandler(FileSystemEventHandler):
         if event.is_directory:
             return
 
-        file_path = event.src_path
-        if not file_path.lower().endswith(".mp4"):
-            return
-
-        logging.info(f"🎬 Yeni video algılandı: {file_path}")
-
-        try:
-            # Şu an sadece logluyoruz
-            # İleride buraya upload / queue / publish eklenir
-            logging.info(f"✅ Video işleme hazır: {file_path}")
-        except Exception as e:
-            logging.error(f"❌ Video işleme hatası: {e}")
-
+        if event.src_path.lower().endswith(".mp4"):
+            print(f"🎬 VIDEO YAKALANDI: {event.src_path}", flush=True)
 
 def start_watcher():
-    logging.info(f"👀 WATCH FOLDER başlatılıyor: {WATCH_FOLDER}")
+    if not os.path.exists(WATCH_FOLDER):
+        raise RuntimeError(f"WATCH_FOLDER yok: {WATCH_FOLDER}")
 
-    event_handler = VideoHandler()
+    print(f"👀 IZLENEN KLASOR: {WATCH_FOLDER}", flush=True)
+
     observer = Observer()
-    observer.schedule(event_handler, WATCH_FOLDER, recursive=False)
+    observer.schedule(VideoHandler(), WATCH_FOLDER, recursive=False)
     observer.start()
 
     try:
@@ -55,7 +32,3 @@ def start_watcher():
         observer.stop()
 
     observer.join()
-
-
-# run.py tarafından import edildiğinde otomatik başlasın
-start_watcher()

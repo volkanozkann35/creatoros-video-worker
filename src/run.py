@@ -1,13 +1,13 @@
-﻿import time
+﻿print("🚀 VIDEO GODMODE ACTIVE", flush=True)
 
-print("🚀 VIDEO GODMODE ACTIVE")
-print("WORKER ALIVE")
+import file_watcher
+import threading
 
-try:
-    import file_watcher
-    print("file_watcher loaded")
-except Exception as e:
-    print("file_watcher failed:", e)
+print("WORKER ALIVE", flush=True)
+
+t = threading.Thread(target=file_watcher.start_watcher, daemon=True)
+t.start()
 
 while True:
+    import time
     time.sleep(60)
